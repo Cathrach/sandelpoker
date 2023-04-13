@@ -248,14 +248,14 @@ function typeOfHand(cardList) {
     if (mults[mults.length - 1] == 4) {
 	return FOUR_OF_A_KIND;
     }
+    if (numArrEqual(mults, [2, 3])) {
+	return FULL_HOUSE;
+    }
     if (mults[mults.length - 1] == 3) {
 	return THREE_OF_A_KIND;
     }
     if (numArrEqual(mults, [1, 2, 2])) {
 	return TWO_PAIR;
-    }
-    if (numArrEqual(mults, [2, 3])) {
-	return FULL_HOUSE;
     }
     return LOSE;
 }
