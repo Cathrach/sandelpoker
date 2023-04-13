@@ -1,0 +1,15 @@
+{
+    "manifest_version": 2,
+    "name": "Sandel's GBF Poker",
+    "description": "Show what cards to keep in GBF poker",
+    "version": "1.0",
+    "devtools_page": "html/sandelpoker_devtools.html",
+    "background": {
+	"persistent": false,
+	"scripts": ["sandelpoker_background.js" ]
+    },
+    "page_action": {
+	"default_icon": "sample_extension.png"
+    },
+    "permissions": [ "activeTab", "declarativeContent" ]
+}
