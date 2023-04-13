@@ -276,14 +276,19 @@ function calculateProbabilities(cardList) {
     // calculate probability of getting each hand
 
     parsedCards = cardList.map(x => parseCard(x));
+    var handHasJoker = parsedCards.some(x => x[0] == JOKER_SUIT);
 
     // remove the 5 drawn cards from the rest of the deck
     var deck = deckWithCardsRemoved(parsedCards);
-    // var deckHasJoker = !(parsedCards.every(x => x[0] != JOKER_SUIT));
 
     var winRates = {};
 
+
     for (const kept_subset of allSubsets(parsedCards)) {
+	// if we have a Joker in our hand, we better keep it! Ignore any subsets that don't use Joker
+	if (handHasJoker && !(kept_subset.some(x => x[0] == JOKER_SUIT))) {
+	    continue;
+	}
     	// remove all cards from the deck
 	var totalDraws = binomCoeff(deck.length, 5 - kept_subset.length);
 	var wins = 0;
