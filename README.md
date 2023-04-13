@@ -1,0 +1,13 @@
+# sandelpoker
+Calculate which cards to keep in GBF poker, as well as which cards to pick during 2-card high/low.
+
+Heavily inspired by https://chrome.google.com/webstore/detail/gbf-poker-helper/cihlfiablcjbjlkkjeoffllogieggbgm.
+I also wanted to know which cards were optimal to keep in the original hand.
+
+Like the GBF poker helper extension, you activate this by going into developer tools and finding the "Sandel Poker" panel.
+Since my method for finding the optimal set of cards to keep is "iterate through all the possibilities", it takes about 3 seconds to compute.
+Obviously you can skip the wait if you get a hand that's guaranteed to win.
+
+The first row shows the cards that will give you the highest probability of winning, while the second shows the cards that will give you the highest expected winnings (assuming you're using a 1000-chip bet). These are not always the same!
+
+To use, download the folder and "load unpacked extension" in `chrome://extensions`.
