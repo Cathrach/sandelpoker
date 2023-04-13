@@ -166,10 +166,10 @@ function getMultiplicities(cardList) {
 
 // given sorted non-joker cards, whether we have a joker, and multiplicities, determine if we have a straight
 // return -1 if not or the high card
-function isStraightHigh(nonJokerRanks, hasJoker, allDistinct) {
+function isStraightHigh(nonJokerRanks, hasJoker) {
     var spread = nonJokerRanks[nonJokerRanks.length - 1] - nonJokerRanks[0];
     var high = nonJokerRanks[nonJokerRanks.length - 1];
-    if (spread == 4 && allDistinct) {
+    if (spread == 4) {
 	return high;
     } else if (spread == 3 && hasJoker) {
 	return Math.min(ACE_HIGH, high + 1);
@@ -193,26 +193,26 @@ function typeOfHand(cardList) {
     // and if, when sorted, their lowest rank is
     var isStraight = false;
     var straightHighCard = -1;
-    
-    // we check both ace low and ace high
-    var nonJokerRanks = nonJokers.map(card => card[1]);
-    nonJokerRanks.sort(compareNumbers);
-    straightHighCard = isStraightHigh(nonJokerRanks, hasJoker, allDistinct);
-    if (straightHighCard != -1) {
-	isStraight = true;
-    }
-
-    // also check ace high straight 
-    if (hasAce) {
-	var nonJokerAceRanks = nonJokerRanks.map(rank => convertAceHigh(rank));
-	nonJokerAceRanks.sort(compareNumbers);
-	var aceHigh = isStraightHigh(nonJokerAceRanks, hasJoker, allDistinct);
-	if (aceHigh == ACE_HIGH) {
+    if (allDistinct) {
+	// we check both ace low and ace high
+	var nonJokerRanks = nonJokers.map(card => card[1]);
+	nonJokerRanks.sort(compareNumbers);
+	straightHighCard = isStraightHigh(nonJokerRanks, hasJoker, allDistinct);
+	if (straightHighCard != -1) {
 	    isStraight = true;
-	    straightHighCard = ACE_HIGH;
+	}
+
+	// also check ace high straight 
+	if (hasAce) {
+	    var nonJokerAceRanks = nonJokerRanks.map(rank => convertAceHigh(rank));
+	    nonJokerAceRanks.sort(compareNumbers);
+	    var aceHigh = isStraightHigh(nonJokerAceRanks, hasJoker, allDistinct);
+	    if (aceHigh == ACE_HIGH) {
+		isStraight = true;
+		straightHighCard = ACE_HIGH;
+	    }
 	}
     }
-
     // this covers all possibilities with non-repeating cards
     if (isStraight && allSameSuit && straightHighCard == ACE_HIGH) {
 	return ROYAL_STRAIGHT_FLUSH;
