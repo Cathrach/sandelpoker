@@ -1,5 +1,5 @@
 # sandelpoker
-Calculate which cards to keep in GBF poker, as well as which cards to pick during 2-card high/low.
+Calculate which cards to keep in GBF poker, as well as which cards to pick during 2-card high/low. This does not modify anything in GBF, but use at your own risk.
 
 Heavily inspired by https://chrome.google.com/webstore/detail/gbf-poker-helper/cihlfiablcjbjlkkjeoffllogieggbgm.
 I also wanted to know which cards were optimal to keep in the original hand.
