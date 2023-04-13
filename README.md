@@ -11,3 +11,5 @@ Obviously you can skip the wait if you get a hand that's guaranteed to win.
 The first row shows the cards that will give you the highest probability of winning, while the second shows the cards that will give you the highest expected winnings (assuming you're using a 1000-chip bet). These are not always the same!
 
 To use, download the folder and "load unpacked extension" in `chrome://extensions`.
+
+Would highly appreciate pull requests to clean up the code, make it faster, etc.! This is my first time making a Chrome extension and using Javascript so I'm sure it's extremely inelegant and inefficient.
