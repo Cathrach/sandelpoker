@@ -179,6 +179,9 @@ function isStraightHigh(nonJokerRanks, hasJoker) {
 }
 
 function typeOfHand(cardList) {
+    if (cardList.length < 3) {
+	return LOSE;
+    }
     // check if all the cards are of the same suit
     var hasJoker = cardList.some(x => x[0] == JOKER_SUIT);
     var nonJokers = cardList.filter(x => x[0] != JOKER_SUIT);
@@ -193,7 +196,7 @@ function typeOfHand(cardList) {
     // and if, when sorted, their lowest rank is
     var isStraight = false;
     var straightHighCard = -1;
-    if (allDistinct) {
+    if (allDistinct && cardList.length == 5) {
 	// we check both ace low and ace high
 	var nonJokerRanks = nonJokers.map(card => card[1]);
 	nonJokerRanks.sort(compareNumbers);
@@ -213,6 +216,7 @@ function typeOfHand(cardList) {
 	    }
 	}
     }
+    if (cardList.length == 5) {
     // this covers all possibilities with non-repeating cards
     if (isStraight && allSameSuit && straightHighCard == ACE_HIGH) {
 	return ROYAL_STRAIGHT_FLUSH;
@@ -222,6 +226,7 @@ function typeOfHand(cardList) {
 	return FLUSH;
     } else if (isStraight) {
 	return STRAIGHT;
+    }
     }
 
     // next check repeating cards
@@ -241,7 +246,7 @@ function typeOfHand(cardList) {
 	if (numArrEqual(mults, [2, 2])) {
 	    return FULL_HOUSE;
 	}
-	if (numArrEqual(mults, [1, 1, 2])) {
+	if (mults[mults.length - 1] == 2) {
 	    return THREE_OF_A_KIND;
 	}
     }
@@ -254,7 +259,7 @@ function typeOfHand(cardList) {
     if (mults[mults.length - 1] == 3) {
 	return THREE_OF_A_KIND;
     }
-    if (numArrEqual(mults, [1, 2, 2])) {
+    if (numArrEqual(mults, [1, 2, 2]) || numArrEqual(mults, [2, 2])) {
 	return TWO_PAIR;
     }
     return LOSE;
@@ -271,6 +276,28 @@ function binomCoeff(n, k) {
     return num / denom;
 }
 
+// if we keep no cards, we should just manually count the possibilities
+function countHands(deck) {
+    // count multiplicities of ranks and suits
+    rankCounts = Array(13).fill(0);
+    suitCounts = Array(4).fill(0);
+    for (var card of deck) {
+	suitCounts[card[0]] += 1;
+	rankCounts[card[1]] += 1;
+    }
+    // count five of a kinds
+    // count four of a kinds
+    // count full houses
+    // count three of a kinds
+    // count two pairs    
+
+    // count royal flushes
+    // count straight flushes
+    // count straights
+    // count flushes
+}
+	
+
 function calculateProbabilities(cardList) {
     // for each subset of the card list
     // calculate probability of getting each hand
@@ -283,10 +310,24 @@ function calculateProbabilities(cardList) {
 
     var winRates = {};
 
+    // if the hand is a win, we only need to check subsets that win
+    var handIsWin = (typeOfHand(parsedCards) != LOSE)
+
+    // if the hand has a pair, we should almost always keep the pair. 
+    // an exception is if you have 4/5 cards for a straight flush. So we should only check subsets of two or more
+    var mults = Object.values(getMultiplicities(parsedCards));
+    var hasPair = mults.some(x => x == 2);
 
     for (const kept_subset of allSubsets(parsedCards)) {
 	// if we have a Joker in our hand, we better keep it! Ignore any subsets that don't use Joker
 	if (handHasJoker && !(kept_subset.some(x => x[0] == JOKER_SUIT))) {
+	    continue;
+	}
+	// if hand is a win, only check subsets that win
+	if (handIsWin && typeOfHand(kept_subset) == LOSE) {
+	    continue;
+	}
+	if (hasPair && kept_subset.length < 2) {
 	    continue;
 	}
     	// remove all cards from the deck
