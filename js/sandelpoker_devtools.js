@@ -279,8 +279,13 @@ function binomCoeff(n, k) {
     return num / denom;
 }
 
+function isInRoyalStraight(rank) {
+    return (rank == 0 || (rank >= 9 && rank <= 12));
+}
+
 // if we keep no cards, we should just manually count the possibilities
-function countHands(deck) {
+// also if the required card is not a joker (I'm too lazy to also do the Joker case, sorry)
+function countHands(deck, requiredCard = -1) {
     // count multiplicities of ranks and suits
     var rankCounts = Array(13).fill(0);
     var suitCounts = Array(4).fill(0);
@@ -298,18 +303,53 @@ function countHands(deck) {
     var sf = 0;
     var straights = 0;
     var flushes = 0;
+
+    // required card stuff
+    var requiredSuit = -1;
+    var requiredRank = -1;
+    if (requiredCard != -1) {
+	requiredSuit = requiredCard[0];
+	requiredRank = requiredCard[1];
+    }
+
     // count five of a kinds
     if (hasJoker) {
-	fives = rankCounts.filter(x => x == 4).length;
+	if (requiredCard != -1) {
+	    if (rankCounts[requiredRank] == 3) {
+		fives = 1;
+	    }
+	} else {
+	    fives = rankCounts.filter(x => x == 4).length;
+	}
     }
     // count four of a kinds
     for (const r1 of RANKS) {
 	for (var r2 = r1 + 1; r2 < RANKS.length; r2++) {
 	    var rank1 = rankCounts[r1];
 	    var rank2 = rankCounts[r2];
-	    fours += binomCoeff(rank1, 4) * rank2 + rank1 * binomCoeff(rank2, 4);
-	    if (hasJoker) {
-		fours += binomCoeff(rank1, 3) * rank2 + rank1 * binomCoeff(rank2, 3);
+	    if (requiredCard != -1) {
+		var required = 0;
+		var notRequired = 0;
+		if (r1 == requiredRank) {
+		    required = rank1;
+		    notRequired = rank2;
+		} else if (r2 == requiredRank) {
+		    required = rank2;
+		    notRequired = rank1;
+		} else {
+		    // if neither rank is required, we shuold just skip this case
+		    continue;
+		}
+		// required card in the 4 + required card in the 1
+		fours += binomCoeff(required, 3) * notRequired + binomCoeff(notRequired, 4);
+		if (hasJoker) {
+		    fours += binomCoeff(required, 2) * notRequired + binomCoeff(notRequired, 3);
+		}
+	    } else {
+		fours += binomCoeff(rank1, 4) * rank2 + rank1 * binomCoeff(rank2, 4);
+		if (hasJoker) {
+		    fours += binomCoeff(rank1, 3) * rank2 + rank1 * binomCoeff(rank2, 3);
+		}
 	    }
 	}
     }
@@ -319,10 +359,30 @@ function countHands(deck) {
 	for (var r2 = r1 + 1; r2 < RANKS.length; r2++) {
 	    var rank1 = rankCounts[r1];
 	    var rank2 = rankCounts[r2];
-	    fh += binomCoeff(rank1, 3) * binomCoeff(rank2, 2) + binomCoeff(rank1, 2) * binomCoeff(rank2, 3);
-	    // with joker, both are 2
-	    if (hasJoker) {
-		fh += binomCoeff(rank1, 2) * binomCoeff(rank2, 2);
+	    // if required
+	    if (requiredCard != -1) {
+		var required = 0;
+		var notRequired = 0;
+		if (r1 == requiredRank) {
+		    required = rank1;
+		    notRequired = rank2;
+		} else if (r2 == requiredRank) {
+		    required = rank2;
+		    notRequired = rank1;
+		} else {
+		    continue;
+		}
+		// required in the 3 + required in the 2
+		fh += binomCoeff(required, 2) * binomCoeff(notRequired, 2) + binomCoeff(notRequired, 3) * required;
+		if (hasJoker) {
+		    fh += required * binomCoeff(notRequired, 2);
+		}
+	    } else {
+		fh += binomCoeff(rank1, 3) * binomCoeff(rank2, 2) + binomCoeff(rank1, 2) * binomCoeff(rank2, 3);
+		// with joker, both are 2
+		if (hasJoker) {
+		    fh += binomCoeff(rank1, 2) * binomCoeff(rank2, 2);
+		}
 	    }
 	}
     }
@@ -336,9 +396,34 @@ function countHands(deck) {
 		var rank1 = rankCounts[r1];
 		var rank2 = rankCounts[r2];
 		var rank3 = rankCounts[r3];
-		threes += binomCoeff(rank1, 3) * rank2 * rank3 + rank1 * binomCoeff(rank2, 3) * rank3 + rank1 * rank2 * binomCoeff(rank3, 3);
-		if (hasJoker) {
-		    threes += binomCoeff(rank1, 2) * rank2 * rank3 + rank1 * binomCoeff(rank2, 2) * rank3 + rank1 * rank2 * binomCoeff(rank3, 2);
+		if (requiredCard != -1) {
+		    var required = 0;
+		    var notRequired = []; // these are indistinguishable
+		    if (r1 == requiredRank) {
+			required = rank1;
+			notRequired = [rank2, rank3];
+		    } else if (r2 == requiredRank) {
+			required = rank2;
+			notRequired = [rank1, rank3];
+		    } else if (r3 == requiredRank){
+			required = rank3;
+			notRequired = [rank1, rank2];
+		    } else {
+			continue;
+		    }
+		    // required is 3
+		    threes += binomCoeff(required, 2) * notRequired[0] * notRequired[1];
+		    // required is 1
+		    threes += binomCoeff(notRequired[0], 3) * notRequired[1] + binomCoeff(notRequired[1], 3) * notRequired[0];
+		    if (hasJoker) {
+			threes += required * notRequired[0] * notRequired[1];
+			threes += binomCoeff(notRequired[0], 2) * notRequired[1] + binomCoeff(notRequired[1], 2) * notRequired[0];
+		    }
+		} else {
+		    threes += binomCoeff(rank1, 3) * rank2 * rank3 + rank1 * binomCoeff(rank2, 3) * rank3 + rank1 * rank2 * binomCoeff(rank3, 3);
+		    if (hasJoker) {
+			threes += binomCoeff(rank1, 2) * rank2 * rank3 + rank1 * binomCoeff(rank2, 2) * rank3 + rank1 * rank2 * binomCoeff(rank3, 2);
+		    }
 		}
 	    }
 	}
@@ -351,7 +436,29 @@ function countHands(deck) {
 		var rank1 = rankCounts[r1];
 		var rank2 = rankCounts[r2];
 		var rank3 = rankCounts[r3];
-		pairs += binomCoeff(rank1, 2) * binomCoeff(rank2, 2) * rank3 + binomCoeff(rank1, 2) * rank2 * binomCoeff(rank3, 2) + rank1 * binomCoeff(rank2, 2) * binomCoeff(rank3, 2);
+
+		if (requiredCard != -1) {
+		    var required = 0;
+		    var notRequired = []; // these are indistinguishable
+		    if (r1 == requiredRank) {
+			required = rank1;
+			notRequired = [rank2, rank3];
+		    } else if (r2 == requiredRank) {
+			required = rank2;
+			notRequired = [rank1, rank3];
+		    } else if (r3 == requiredRank){
+			required = rank3;
+			notRequired = [rank1, rank2];
+		    } else {
+			continue;
+		    }
+		    // required is 2
+		    pairs += required * (binomCoeff(notRequired[0], 2) * notRequired[1] + binomCoeff(notRequired[1], 2) * notRequired[0]);
+		    // required is 1
+		    pairs += binomCoeff(notRequired[0], 2) * binomCoeff(notRequired[1], 2);
+		} else {
+		    pairs += binomCoeff(rank1, 2) * binomCoeff(rank2, 2) * rank3 + binomCoeff(rank1, 2) * rank2 * binomCoeff(rank3, 2) + rank1 * binomCoeff(rank2, 2) * binomCoeff(rank3, 2);
+		}
 	    }
 	}
     }
@@ -360,12 +467,24 @@ function countHands(deck) {
     // for this, we need the original deck
     for (const suit of SUITS) {
 	// check if 10-A are present, or, if joker, at least 4 or present
-	var num10toA = deck.filter(card => card[0] == suit && ((card[1] >= 9 && card[1] <= 12) || card[1] == 0)).length;
+	var num10toA = deck.filter(card => card[0] == suit && isInRoyalStraight(card[1])).length;
+	if (requiredCard != -1) {
+	    if (requiredSuit != suit || !isInRoyalStraight(requiredRank)) {
+		continue;
+	    }
+	    if (num10toA == 4) {
+		rsf += 1;
+	    }
+	    if (hasJoker) {
+		rsf += binomCoeff(num10toA, 3);
+	    }
+	} else {
 	if (num10toA == 5) {
 	    rsf += 1;
 	}
 	if (hasJoker) {
 	    rsf += binomCoeff(num10toA, 4);
+	}
 	}
     }
     // count straight flushes
@@ -375,6 +494,28 @@ function countHands(deck) {
     for (const suit of SUITS) {
 	for (const highCard of [4, 5, 6, 7, 8, 9, 10, 11, 12]) {
 	    var numCardsInRange = deck.filter(card => card[0] == suit && card[1] <= highCard && card[1] >= highCard - 4).length;
+	    var hasFourStraight = deck.filter(card => card[0] == suit && card[1] <= highCard && card[1] >= highCard - 3).length;
+	    if (requiredCard != -1) {
+		if (requiredSuit != suit || requiredRank > highCard || requiredRank < highCard - 4) {
+		    continue;
+		}
+		// the required card is the 5th
+		if (numCardsInRange == 4) {
+		    sf += 1;
+		}
+		if (hasJoker) {
+		    sf += binomCoeff(numCardsInRange, 3);
+		}
+		// subtract: we already know that the kept cardi s in the range, so we add it to hasFourStraight if needed
+		// we should not subtract when the required is the low card, though
+		if (requiredRank != highCard - 4) {
+		    // then required is in the straight, but it's not the low card
+		    hasFourStraight += 1;
+		if (hasFourStraight == 4) {
+		    sf -= 1;
+		}
+		}
+	    } else {
 	    if (numCardsInRange == 5) {
 		sf += 1;
 	    }
@@ -382,9 +523,9 @@ function countHands(deck) {
 		sf += binomCoeff(numCardsInRange, 4);
 	    }
 	    // now subtract one copy of 2-5, etc., 10-K
-	    var hasFourStraight = deck.filter(card => card[0] == suit && card[1] <= highCard && card[1] >= highCard - 3).length;
 	    if (hasFourStraight == 4) {
 		sf -= 1;
+	    }
 	    }
 	}
     }
@@ -400,26 +541,52 @@ function countHands(deck) {
 		cardRange[i] = highCard - (4 - i);
 	    }
 	}
+	// skip if required card not in range
+	if (requiredCard != -1 && !cardRange.some(x => x == requiredRank)) {
+	    continue;
+	}
 	// nonjoker: just multiply how many choices we have for each rank
 	var straightsWithHigh = 1;
-	for (const rank in cardRange) {
-	    straightsWithHigh *= rankCounts[rank];
+	for (const rank of cardRange) {
+	    if (requiredCard != -1 && rank == requiredRank) {
+		// do nothing, because the only card of this rank we could put is the required card
+	    } else {
+		straightsWithHigh *= rankCounts[rank];
+	    }
 	}
 	straights += straightsWithHigh;
 	// joker: we only need 4 of the 5 ranks. so for every subset of length 4...
+	// if we have a required card, we only need 3 of the 5 ranks, but ignoring the required card. The last card is the required card.
 	if (hasJoker) {
-	    for (const subset of lengthSubsets(cardRange, 4)) {
+	    var cardRangeIterator;
+	    if (requiredCard != -1) {
+		cardRangeIterator = lengthSubsets(cardRange.filter(x => x != requiredRank), 3);
+	    } else {
+		cardRangeIterator = lengthSubsets(cardRange, 4);
+	    }
+	    for (const subset of cardRangeIterator) {
 		var jokerStraightsWithHigh = 1;
-		for (const rank in subset) {
+		for (const rank of subset) {
 		    jokerStraightsWithHigh *= rankCounts[rank];
 		}
 		straights += jokerStraightsWithHigh;
 	    }
 	    // now subtract the ones using hC - 3 to hC (except for 13) because they're counted twice
+	    // if we have a required card, we know that the range must contain the required card
+	    // the ones containing the required card as the non-low card are overcounted
 	    if (highCard != 13) {
-		var subset = cardRange.slice(0, 4);
+		// if we have a required but it's highCard - 4, skip this overcounting, since this can only happen once
+		if (requiredCard != -1 && requiredRank == highCard - 4) {
+		    continue;
+		}
 		var overcounted = 1;
-		for (const rank in subset) {
+		var subset = cardRange.slice(1, 5);
+		if (requiredCard != -1 && requiredCard != highCard - 4) {
+		    // required card is in cards 2-5, so it's fixed, we must take it out of the card range
+		    subset = cardRange.slice(1, 5).filter(x => x != requiredRank);
+		}
+		
+		for (const rank of subset) {
 		    overcounted *= rankCounts[rank];
 		}
 		straights -= overcounted;
@@ -431,9 +598,21 @@ function countHands(deck) {
     // count flushes
     // again, we count arbitrary flushes, then subtract the straigth flushes and the royal straight flushes
     for (const suit of SUITS) {
+	if (requiredCard != -1) {
+	    // ignore if incorrect suit
+	    if (requiredSuit != suit) {
+		continue;
+	    }
+	    // otherwise, choose 4 or 3 other cards
+	    flushes += binomCoeff(suitCounts[suit], 4);
+	    if (hasJoker) {
+		flushes += binomCoeff(suitCounts[suit], 3);
+	    }
+	} else {
 	flushes += binomCoeff(suitCounts[suit], 5);
 	if (hasJoker) {
 	    flushes += binomCoeff(suitCounts[suit], 4);
+	}
 	}
     }
     flushes -= (sf + rsf);
@@ -442,7 +621,12 @@ function countHands(deck) {
     var totalWins = fives + fours + fh + threes + pairs + rsf + sf + straights + flushes;
     var totalChips = fives * FIVE_OF_A_KIND + fours * FOUR_OF_A_KIND + fh * FULL_HOUSE + threes * THREE_OF_A_KIND + pairs * TWO_PAIR + rsf * ROYAL_STRAIGHT_FLUSH + sf * STRAIGHT_FLUSH + straights * STRAIGHT + flushes * FLUSH;
 
-    var totalDraws = binomCoeff(deck.length, 5);
+    var totalDraws;
+    if (requiredCard != -1) {
+	totalDraws = binomCoeff(deck.length, 4);
+    } else {
+	totalDraws = binomCoeff(deck.length, 5);
+    }
     return [totalWins / totalDraws, totalChips / totalDraws];
 }
 
@@ -487,7 +671,11 @@ function calculateProbabilities(cardList) {
 	// if the subset is empty, we can compute directly
 	if (kept_subset.length == 0) {
 	    var countedResult = countHands(deck);
-	    winRates[JSON.stringify(kept_subset)] = countedResult;    
+	    winRates[JSON.stringify(kept_subset)] = countedResult;
+	} else if (kept_subset.length == 1 && !handHasJoker) {
+	    // computing things WITH the joker is too annoying
+	    var countedResult = countHands(deck, kept_subset[0]);
+	    winRates[JSON.stringify(kept_subset)] = countedResult;
 	} else {
 	    for (const draw of lengthSubsets(deck, 5 - kept_subset.length)) {
 		var totalDraw = kept_subset.concat(draw);
