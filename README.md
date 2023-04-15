@@ -5,8 +5,7 @@ Heavily inspired by https://chrome.google.com/webstore/detail/gbf-poker-helper/c
 I also wanted to know which cards were optimal to keep in the original hand.
 
 Like the GBF poker helper extension, you activate this by going into developer tools and finding the "Sandel Poker" panel.
-Since my method for finding the optimal set of cards to keep is "iterate through all the possibilities", it's inefficient and takes about a second to compute. Am working on making it faster!
-Obviously you can skip the wait if you get a hand that's guaranteed to win.
+Since my method for finding the optimal set of cards to keep is "iterate through all the possibilities", it's inefficient. Correctness is also not guaranteed :)
 
 The first row shows the cards that will give you the highest probability of winning, while the second shows the cards that will give you the highest expected winnings (assuming you're using a 1000-chip bet). These are not always the same!
 
