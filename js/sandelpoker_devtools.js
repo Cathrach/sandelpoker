@@ -217,23 +217,23 @@ function typeOfHand(cardList) {
 	}
     }
     if (cardList.length == 5) {
-    // this covers all possibilities with non-repeating cards
-    if (isStraight && allSameSuit && straightHighCard == ACE_HIGH) {
-	return ROYAL_STRAIGHT_FLUSH;
-    } else if (isStraight && allSameSuit) {
-	return STRAIGHT_FLUSH;
-    } else if (allSameSuit) {
-	return FLUSH;
-    } else if (isStraight) {
-	return STRAIGHT;
-    }
+	// this covers all possibilities with non-repeating cards
+	if (isStraight && allSameSuit && straightHighCard == ACE_HIGH) {
+	    return ROYAL_STRAIGHT_FLUSH;
+	} else if (isStraight && allSameSuit) {
+	    return STRAIGHT_FLUSH;
+	} else if (allSameSuit) {
+	    return FLUSH;
+	} else if (isStraight) {
+	    return STRAIGHT;
+	}
     }
 
     // next check repeating cards
     mults.sort(compareNumbers);
 
     // if [1, 1, 1, 2] or [1, 1, 1, 1, 1], bad.
-    if (numArrEqual(mults, [1, 1, 1, 2]) || mults.slice(0, 4).every(x => x == 1)) {
+    if (mults.slice(0, 3).every(x => x == 1)) {
 	return LOSE;
     }
     if (hasJoker) {
@@ -266,6 +266,9 @@ function typeOfHand(cardList) {
 }
 
 function binomCoeff(n, k) {
+    if (k > n) {
+	return 0;
+    }
     var denom = 1;
     var num = 1;
     var numToMultiply = Math.min(k, n - k);
@@ -279,24 +282,170 @@ function binomCoeff(n, k) {
 // if we keep no cards, we should just manually count the possibilities
 function countHands(deck) {
     // count multiplicities of ranks and suits
-    rankCounts = Array(13).fill(0);
-    suitCounts = Array(4).fill(0);
+    var rankCounts = Array(13).fill(0);
+    var suitCounts = Array(4).fill(0);
     for (var card of deck) {
 	suitCounts[card[0]] += 1;
 	rankCounts[card[1]] += 1;
     }
+    var hasJoker = deck.some(x => x[0] == JOKER_SUIT);
+    var fives = 0;
+    var fours = 0;
+    var fh = 0;
+    var threes = 0;
+    var pairs = 0;
+    var rsf = 0;
+    var sf = 0;
+    var straights = 0;
+    var flushes = 0;
     // count five of a kinds
+    if (hasJoker) {
+	fives = rankCounts.filter(x => x == 4).length;
+    }
     // count four of a kinds
+    for (const r1 of RANKS) {
+	for (var r2 = r1 + 1; r2 < RANKS.length; r2++) {
+	    var rank1 = rankCounts[r1];
+	    var rank2 = rankCounts[r2];
+	    fours += binomCoeff(rank1, 4) * rank2 + rank1 * binomCoeff(rank2, 4);
+	    if (hasJoker) {
+		fours += binomCoeff(rank1, 3) * rank2 + rank1 * binomCoeff(rank2, 3);
+	    }
+	}
+    }
     // count full houses
+    // without joker, choose two ranks and one to be 3, one to be 2
+    for (const r1 of RANKS) {
+	for (var r2 = r1 + 1; r2 < RANKS.length; r2++) {
+	    var rank1 = rankCounts[r1];
+	    var rank2 = rankCounts[r2];
+	    fh += binomCoeff(rank1, 3) * binomCoeff(rank2, 2) + binomCoeff(rank1, 2) * binomCoeff(rank2, 3);
+	    // with joker, both are 2
+	    if (hasJoker) {
+		fh += binomCoeff(rank1, 2) * binomCoeff(rank2, 2);
+	    }
+	}
+    }
+    
     // count three of a kinds
-    // count two pairs    
+    // without joker, 3, 1, 1
+    // with joker, 2, 1, 1 (technically this would also count as a two pair, so no two pair occurs with jokers)
+    for (const r1 of RANKS) {
+	for (var r2 = r1 + 1; r2 < RANKS.length; r2++) {
+	    for (var r3 = r2 + 1; r3 < RANKS.length; r3++) {
+		var rank1 = rankCounts[r1];
+		var rank2 = rankCounts[r2];
+		var rank3 = rankCounts[r3];
+		threes += binomCoeff(rank1, 3) * rank2 * rank3 + rank1 * binomCoeff(rank2, 3) * rank3 + rank1 * rank2 * binomCoeff(rank3, 3);
+		if (hasJoker) {
+		    threes += binomCoeff(rank1, 2) * rank2 * rank3 + rank1 * binomCoeff(rank2, 2) * rank3 + rank1 * rank2 * binomCoeff(rank3, 2);
+		}
+	    }
+	}
+    }
+    
+    // count two pairs: 2, 2, 1 (no Joker)
+    for (const r1 of RANKS) {
+	for (var r2 = r1 + 1; r2 < RANKS.length; r2++) {
+	    for (var r3 = r2 + 1; r3 < RANKS.length; r3++) {
+		var rank1 = rankCounts[r1];
+		var rank2 = rankCounts[r2];
+		var rank3 = rankCounts[r3];
+		pairs += binomCoeff(rank1, 2) * binomCoeff(rank2, 2) * rank3 + binomCoeff(rank1, 2) * rank2 * binomCoeff(rank3, 2) + rank1 * binomCoeff(rank2, 2) * binomCoeff(rank3, 2);
+	    }
+	}
+    }
 
-    // count royal flushes
+    // count royal straight flushes
+    // for this, we need the original deck
+    for (const suit of SUITS) {
+	// check if 10-A are present, or, if joker, at least 4 or present
+	var num10toA = deck.filter(card => card[0] == suit && ((card[1] >= 9 && card[1] <= 12) || card[1] == 0)).length;
+	if (num10toA == 5) {
+	    rsf += 1;
+	}
+	if (hasJoker) {
+	    rsf += binomCoeff(num10toA, 4);
+	}
+    }
     // count straight flushes
+    // for each suit, for each high card from 5 to K, check if we can make a straight
+    // jokers: 2,3,4,5 J will count for both 5 high and 6 high. so there is nontrivial overlap between 5 high and 6 high w/joker
+    // count everything normally, then subtract one copy of 2-5, etc., 10-K (this is counted in royal straight flush)
+    for (const suit of SUITS) {
+	for (const highCard of [4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+	    var numCardsInRange = deck.filter(card => card[0] == suit && card[1] <= highCard && card[1] >= highCard - 4).length;
+	    if (numCardsInRange == 5) {
+		sf += 1;
+	    }
+	    if (hasJoker) {
+		sf += binomCoeff(numCardsInRange, 4);
+	    }
+	    // now subtract one copy of 2-5, etc., 10-K
+	    var hasFourStraight = deck.filter(card => card[0] == suit && card[1] <= highCard && card[1] >= highCard - 3).length;
+	    if (hasFourStraight == 4) {
+		sf -= 1;
+	    }
+	}
+    }
+    
     // count straights
+    // count the straights including flushes, then subtract the straight flushes
+    for (const highCard of [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) {
+	var cardRange = Array(5);
+	for (var i = 0; i < 5; i++) {
+	    if (highCard == 13 && i == 4) {
+		cardRange[i] = 0;
+	    } else {
+		cardRange[i] = highCard - (4 - i);
+	    }
+	}
+	// nonjoker: just multiply how many choices we have for each rank
+	var straightsWithHigh = 1;
+	for (const rank in cardRange) {
+	    straightsWithHigh *= rankCounts[rank];
+	}
+	straights += straightsWithHigh;
+	// joker: we only need 4 of the 5 ranks. so for every subset of length 4...
+	if (hasJoker) {
+	    for (const subset of lengthSubsets(cardRange, 4)) {
+		var jokerStraightsWithHigh = 1;
+		for (const rank in subset) {
+		    jokerStraightsWithHigh *= rankCounts[rank];
+		}
+		straights += jokerStraightsWithHigh;
+	    }
+	    // now subtract the ones using hC - 3 to hC (except for 13) because they're counted twice
+	    if (highCard != 13) {
+		var subset = cardRange.slice(0, 4);
+		var overcounted = 1;
+		for (const rank in subset) {
+		    overcounted *= rankCounts[rank];
+		}
+		straights -= overcounted;
+	    }
+	}
+    }
+    straights -= (sf + rsf);
+    
     // count flushes
+    // again, we count arbitrary flushes, then subtract the straigth flushes and the royal straight flushes
+    for (const suit of SUITS) {
+	flushes += binomCoeff(suitCounts[suit], 5);
+	if (hasJoker) {
+	    flushes += binomCoeff(suitCounts[suit], 4);
+	}
+    }
+    flushes -= (sf + rsf);
+
+    // the total wins
+    var totalWins = fives + fours + fh + threes + pairs + rsf + sf + straights + flushes;
+    var totalChips = fives * FIVE_OF_A_KIND + fours * FOUR_OF_A_KIND + fh * FULL_HOUSE + threes * THREE_OF_A_KIND + pairs * TWO_PAIR + rsf * ROYAL_STRAIGHT_FLUSH + sf * STRAIGHT_FLUSH + straights * STRAIGHT + flushes * FLUSH;
+
+    var totalDraws = binomCoeff(deck.length, 5);
+    return [totalWins / totalDraws, totalChips / totalDraws];
 }
-	
+
 
 function calculateProbabilities(cardList) {
     // for each subset of the card list
@@ -330,19 +479,27 @@ function calculateProbabilities(cardList) {
 	if (hasPair && kept_subset.length < 2) {
 	    continue;
 	}
+
     	// remove all cards from the deck
 	var totalDraws = binomCoeff(deck.length, 5 - kept_subset.length);
 	var wins = 0;
 	var chips = 0;
-	for (const draw of lengthSubsets(deck, 5 - kept_subset.length)) {
-	    var totalDraw = kept_subset.concat(draw);
-	    var win = typeOfHand(totalDraw);
-	    if (win > 0) {
-		wins += 1;
-		chips += win;
+	// if the subset is empty, we can compute directly
+	if (kept_subset.length == 0) {
+	    var countedResult = countHands(deck);
+	    winRates[JSON.stringify(kept_subset)] = countedResult;    
+	} else {
+	    for (const draw of lengthSubsets(deck, 5 - kept_subset.length)) {
+		var totalDraw = kept_subset.concat(draw);
+		var win = typeOfHand(totalDraw);
+		if (win > 0) {
+		    wins += 1;
+		    chips += win;
+		}
 	    }
+	    winRates[JSON.stringify(kept_subset)] = [ wins / totalDraws, chips / totalDraws];
 	}
-	winRates[JSON.stringify(kept_subset)] = [ wins / totalDraws, chips / totalDraws];
+
     }
     
     return winRates;
